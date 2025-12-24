@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sunday Movie Night Generator</title>
+    <style>
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #121212; color: #ffffff; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        .card { background: #1e1e1e; padding: 30px; border-radius: 20px; width: 350px; text-align: center; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        select, button { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: none; font-size: 1rem; }
+        select { background: #333; color: white; cursor: pointer; }
+        button { background: #5865F2; color: white; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        button:hover { background: #4752c4; }
+        #movieResult { margin-top: 20px; display: none; border-top: 1px solid #333; padding-top: 20px; }
+        img { width: 100%; border-radius: 10px; margin-bottom: 15px; }
+        .rt-score { color: #fa320a; font-weight: bold; font-size: 1.4rem; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .rt-logo { width: 24px !important; height: 24px; margin-bottom: 0 !important; }
+
+        /* Popup Styles */
+        #announcementOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; justify-content: center; align-items: center; z-index: 1000; }
+        .popup-content { background: #2f3136; padding: 40px; border-radius: 15px; text-align: center; max-width: 400px; border: 2px solid #5865F2; }
+        .close-btn { background: #ed4245; margin-top: 20px; width: auto; padding: 10px 30px; }
+    </style>
+</head>
+<body>
+
+<div id="announcementOverlay">
+    <div class="popup-content">
+        <h2>Hey Movie Buffs! 🍿</h2>
+        <p>Hi everyone, every Sunday night I will be hosting movie night on the Discord and this tool will be used to decide the movies we watch!</p>
+        <button class="close-btn" onclick="document.getElementById('announcementOverlay').style.display='none'">Let's Go!</button>
+    </div>
+</div>
+
+<div class="card">
+    <h1>Sunday Night</h1>
+    <select id="genre">
+        <option value="28">Action</option>
+        <option value="35">Comedy</option>
+        <option value="27">Horror</option>
+        <option value="878">Sci-Fi</option>
+    </select>
+    <button onclick="generateMovie()">Generate Movie</button>
+
+    <div id="movieResult">
+        <img id="poster" src="" alt="Poster">
+        <h3 id="title"></h3>
+        <div class="rt-score">
+            <img class="rt-logo" src="https://upload.wikimedia.org/wikipedia/commons/5/5b/Rotten_Tomatoes.svg" alt="RT">
+            <span id="rtScore">Loading...</span>
+        </div>
+    </div>
+</div>
+
+<script>
+    const TMDB_API_KEY = 'YOUR_TMDB_KEY'; 
+    const OMDB_API_KEY = '83f31f61';
+
+    async function generateMovie() {
+        const genreId = document.getElementById('genre').value;
+        const tmdbUrl = `https://api.themoviedb.org/3/discover/movie?api_key=${TMDB_API_KEY}&with_genres=${genreId}&sort_by=popularity.desc&page=${Math.floor(Math.random() * 5) + 1}`;
+
+        try {
+            const tmdbRes = await fetch(tmdbUrl);
+            const tmdbData = await tmdbRes.json();
+            const movie = tmdbData.results[Math.floor(Math.random() * tmdbData.results.length)];
+
+            // Display Title and Poster immediately
+            document.getElementById('title').innerText = movie.title;
+            document.getElementById('poster').src = `https://image.tmdb.org/t/p/w500${movie.poster_path}`;
+            document.getElementById('movieResult').style.display = 'block';
+            document.getElementById('rtScore').innerText = "Searching...";
+
+            // Now fetch the Rotten Tomatoes score from OMDb using the movie title
+            const omdbUrl = `https://www.omdbapi.com/?t=${encodeURIComponent(movie.title)}&apikey=${OMDB_API_KEY}`;
+            const omdbRes = await fetch(omdbUrl);
+            const omdbData = await omdbRes.json();
+
+            // Find the Rotten Tomatoes rating in the list of ratings
+            const rtRating = omdbData.Ratings ? omdbData.Ratings.find(r => r.Source === "Rotten Tomatoes") : null;
+            document.getElementById('rtScore').innerText = rtRating ? rtRating.Value : "N/A";
+
+        } catch (error) {
+            console.error(error);
+            alert("Check your API keys!");
+        }
+    }
+</script>
+
+</body>
+</html>
