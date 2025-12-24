@@ -6,7 +6,7 @@
     <title>Sunday Movie Night</title>
     <style>
         body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #121212; color: #ffffff; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
-        .card { background: #1e1e1e; padding: 30px; border-radius: 20px; width: 380px; text-align: center; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .card { background: #1e1e1e; padding: 30px; border-radius: 20px; width: 100%; max-width: 380px; text-align: center; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         
         .filter-box { text-align: left; background: #252525; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #444; }
         label { font-size: 0.75rem; color: #5865F2; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 5px; }
@@ -14,15 +14,16 @@
 
         .gen-btn { width: 100%; padding: 15px; background: #5865F2; color: white; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; font-size: 1.1rem; transition: 0.2s; }
         .gen-btn:hover { background: #4752c4; }
-        .gen-btn:active { transform: scale(0.98); }
+        .gen-btn:disabled { background: #444; cursor: wait; }
         
         #movieResult { margin-top: 25px; display: none; border-top: 1px solid #333; padding-top: 20px; text-align: left; animation: fadeIn 0.4s ease-in; }
         #poster { width: 100%; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.4); }
         .movie-title { font-size: 1.6rem; margin: 0; text-align: center; color: #fff; }
-        .movie-year { color: #888; text-align: center; display: block; margin-bottom: 15px; font-size: 1rem; }
+        .movie-year { color: #888; text-align: center; display: block; margin-bottom: 10px; font-size: 1rem; }
         
-        .score-box { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 15px; background: rgba(250, 50, 10, 0.1); padding: 10px; border-radius: 8px; border: 1px solid rgba(250, 50, 10, 0.2); }
-        .score-val { color: #fa320a; font-weight: bold; font-size: 1.3rem; }
+        /* ROTTEN TOMATOES BOX STYLE */
+        .score-box { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 15px; background: rgba(250, 50, 10, 0.15); padding: 10px; border-radius: 8px; border: 1px solid rgba(250, 50, 10, 0.3); }
+        .score-val { color: #fa320a; font-weight: bold; font-size: 1.4rem; }
 
         .info-box { font-size: 0.9rem; color: #ccc; background: #2a2a2a; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #5865F2; }
         .label { color: #5865F2; font-weight: bold; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; }
@@ -39,7 +40,7 @@
     <h1 style="margin-top:0; color: #5865F2;">Movie Night</h1>
     
     <div class="filter-box">
-        <label>Genre</label>
+        <label>Select Genre</label>
         <select id="genre">
             <option value="28">Action</option>
             <option value="35">Comedy</option>
@@ -47,10 +48,11 @@
             <option value="878">Sci-Fi</option>
             <option value="16">Animation</option>
             <option value="12">Adventure</option>
+            <option value="53">Thriller</option>
         </select>
 
-        <label>Released After Year</label>
-        <input type="number" id="minYear" value="2015">
+        <label>Earliest Year</label>
+        <input type="number" id="minYear" value="2010">
     </div>
 
     <button class="gen-btn" id="genBtn" onclick="generateMovie()">Generate Movie</button>
@@ -61,7 +63,7 @@
         <span id="year" class="movie-year"></span>
         
         <div class="score-box">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5b/Rotten_Tomatoes.svg" width="24" height="24">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5b/Rotten_Tomatoes.svg" width="28" height="28" alt="RT">
             <span id="scoreDisplay" class="score-val">--</span>
         </div>
 
@@ -82,53 +84,54 @@
         const btn = document.getElementById('genBtn');
         const genreId = document.getElementById('genre').value;
         const minYearInput = parseInt(document.getElementById('minYear').value);
-        const currentYear = new Date().getFullYear();
+        const currentYear = 2024; // Cap search at 2024 to avoid 2025 bias
         
         btn.innerText = "Searching...";
         btn.disabled = true;
 
-        // FORCE RANDOM YEAR: Pick a specific year between Input and Now
+        // 1. Pick a random year first (Fixes the "Only 2025" bug)
         const randomYear = Math.floor(Math.random() * (currentYear - minYearInput + 1)) + minYearInput;
 
-        // Search strictly within that ONE random year
-        const url = `https://api.themoviedb.org/3/discover/movie?api_key=${TMDB_KEY}&with_genres=${genreId}&primary_release_year=${randomYear}&sort_by=vote_count.desc&page=${Math.floor(Math.random() * 5) + 1}`;
+        // 2. Search TMDB for that specific year
+        const url = `https://api.themoviedb.org/3/discover/movie?api_key=${TMDB_KEY}&with_genres=${genreId}&primary_release_year=${randomYear}&sort_by=vote_count.desc&page=${Math.floor(Math.random() * 3) + 1}`;
 
         try {
             const res = await fetch(url);
             const data = await res.json();
             
             if (data.results && data.results.length > 0) {
-                // Shuffle results to not just get the #1 top movie
+                // Shuffle results for variety
                 const movies = data.results.sort(() => Math.random() - 0.5);
                 const movie = movies[0];
                 const movieYear = movie.release_date ? movie.release_date.split('-')[0] : randomYear;
 
-                // Fetch Score from OMDb
+                // 3. Get ROTTEN TOMATOES Score from OMDb
                 const omdbRes = await fetch(`https://www.omdbapi.com/?t=${encodeURIComponent(movie.title)}&y=${movieYear}&apikey=${OMDB_KEY}`);
                 const omdbData = await omdbRes.json();
 
                 let rating = "N/A";
+                // Logic: Look for Rotten Tomatoes first, fallback to IMDb if missing
                 if (omdbData.Response === "True") {
                     const rt = omdbData.Ratings ? omdbData.Ratings.find(r => r.Source === "Rotten Tomatoes") : null;
                     rating = rt ? rt.Value : (omdbData.imdbRating !== "N/A" ? omdbData.imdbRating + "/10 (IMDb)" : "N/A");
                 }
 
-                // Update UI
+                // 4. Update the Screen
                 document.getElementById('title').innerText = movie.title;
-                document.getElementById('year').innerText = movieYear;
+                document.getElementById('year').innerText = "Released: " + movieYear;
                 document.getElementById('scoreDisplay').innerText = rating;
                 document.getElementById('actorList').innerText = omdbData.Actors || "Cast list unavailable";
                 document.getElementById('poster').src = movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : 'https://via.placeholder.com/500x750?text=No+Poster';
                 document.getElementById('movieResult').style.display = 'block';
 
-                // Trailer
+                // 5. Get Trailer
                 const videoRes = await fetch(`https://api.themoviedb.org/3/movie/${movie.id}/videos?api_key=${TMDB_KEY}`);
                 const videoData = await videoRes.json();
                 const trailer = videoData.results.find(v => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser'));
                 
                 const tBtn = document.getElementById('trailerLink');
                 if (trailer) {
-                    tBtn.href = `https://www.youtube.com/watch?v=$${trailer.key}`;
+                    tBtn.href = `https://www.youtube.com/watch?v=${trailer.key}`;
                     tBtn.style.display = 'flex';
                 } else {
                     tBtn.style.display = 'none';
