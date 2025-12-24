@@ -14,12 +14,12 @@
         .gen-btn { background: #5865F2; color: white; font-weight: bold; cursor: pointer; transition: 0.2s; }
         .gen-btn:hover { background: #4752c4; }
         .gen-btn:disabled { background: #444; cursor: wait; }
+        #status { font-size: 0.7rem; color: #888; margin-bottom: 10px; min-height: 1em; }
         #movieResult { display: none; margin-top: 20px; text-align: left; border-top: 1px solid #444; padding-top: 20px; animation: fadeIn 0.5s; }
         #poster { width: 100%; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
         .rt-score { color: #fa320a; font-weight: bold; font-size: 1.2rem; margin: 15px 0; display: flex; align-items: center; gap: 10px; justify-content: center; background: rgba(250, 50, 10, 0.1); padding: 10px; border-radius: 8px; }
-        .actors { font-size: 0.9rem; color: #ccc; background: #2a2a2a; padding: 12px; border-radius: 8px; border-left: 3px solid #5865F2; }
-        .trailer-btn { background: #ff0000; color: white; text-decoration: none; padding: 12px; display: none; text-align: center; border-radius: 8px; margin-top: 15px; font-weight: bold; transition: 0.2s; }
-        .trailer-btn:hover { background: #cc0000; }
+        .actors { font-size: 0.85rem; color: #ccc; background: #2a2a2a; padding: 12px; border-radius: 8px; border-left: 3px solid #5865F2; }
+        .trailer-btn { background: #ff0000; color: white; text-decoration: none; padding: 12px; display: none; text-align: center; border-radius: 8px; margin-top: 15px; font-weight: bold; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
@@ -41,23 +41,21 @@
         <label>After Year</label>
         <input type="number" id="minYear" value="2015">
     </div>
+    <div id="status"></div>
     <button class="gen-btn" id="genBtn" onclick="generateMovie()">Generate Movie</button>
 
     <div id="movieResult">
         <img id="poster" src="">
         <h3 id="title" style="margin: 15px 0 5px 0; text-align:center;"></h3>
         <p id="year" style="color:#888; margin:0 0 15px 0; text-align:center; font-size: 0.9rem;"></p>
-        
         <div class="rt-score">
             <img src="https://upload.wikimedia.org/wikipedia/commons/5/5b/Rotten_Tomatoes.svg" width="25">
             <span id="rtDisplay">--</span>
         </div>
-
         <div class="actors">
-            <strong style="color:#5865F2; font-size:0.7rem; text-transform:uppercase;">Starring:</strong><br>
+            <strong style="color:#5865F2; font-size:0.7rem;">STARRING:</strong><br>
             <span id="actorList"></span>
         </div>
-        
         <a id="trailer" target="_blank" class="trailer-btn">▶ Watch Trailer</a>
     </div>
 </div>
@@ -68,63 +66,69 @@
 
     async function generateMovie() {
         const btn = document.getElementById('genBtn');
-        btn.innerText = "Searching...";
+        const status = document.getElementById('status');
         btn.disabled = true;
+        btn.innerText = "Searching...";
 
         const genre = document.getElementById('genre').value;
         const year = document.getElementById('minYear').value;
         const minRT = parseInt(document.getElementById('minScore').value);
 
         try {
-            // Pick a random page to get different movies every time
-            const randomPage = Math.floor(Math.random() * 5) + 1;
-            const res = await fetch(`https://api.themoviedb.org/3/discover/movie?api_key=${TMDB_KEY}&with_genres=${genre}&primary_release_date.gte=${year}-01-01&sort_by=popularity.desc&page=${randomPage}`);
+            // Step 1: Search popular/highly rated movies directly on TMDB
+            const randomPage = Math.floor(Math.random() * 3) + 1;
+            const res = await fetch(`https://api.themoviedb.org/3/discover/movie?api_key=${TMDB_KEY}&with_genres=${genre}&primary_release_date.gte=${year}-01-01&sort_by=vote_average.desc&vote_count.gte=500&page=${randomPage}`);
             const data = await res.json();
             
             let found = false;
-            // Shuffle the results
             const movies = data.results.sort(() => Math.random() - 0.5);
 
             for (let movie of movies) {
+                status.innerText = `Checking: ${movie.title}...`;
                 const movieYear = movie.release_date ? movie.release_date.split('-')[0] : "";
                 
-                // FIXED: Changed to HTTPS
-                const oRes = await fetch(`https://www.omdbapi.com/?t=${encodeURIComponent(movie.title)}&y=${movieYear}&apikey=${OMDB_KEY}`);
-                const oData = await oRes.json();
+                // Step 2: Try with Year first, then without Year if it fails
+                let oRes = await fetch(`https://www.omdbapi.com/?t=${encodeURIComponent(movie.title)}&y=${movieYear}&apikey=${OMDB_KEY}`);
+                let oData = await oRes.json();
+                
+                if (oData.Response === "False") {
+                    oRes = await fetch(`https://www.omdbapi.com/?t=${encodeURIComponent(movie.title)}&apikey=${OMDB_KEY}`);
+                    oData = await oRes.json();
+                }
 
                 if (oData.Response === "True") {
                     const rt = oData.Ratings ? oData.Ratings.find(r => r.Source === "Rotten Tomatoes") : null;
                     const imdb = oData.imdbRating && oData.imdbRating !== "N/A" ? parseFloat(oData.imdbRating) * 10 : 0;
-                    const currentScore = rt ? parseInt(rt.Value) : imdb;
+                    const finalScore = rt ? parseInt(rt.Value) : imdb;
 
-                    if (currentScore >= minRT) {
-                        showMovie(movie, oData, rt ? rt.Value : currentScore + "% (IMDb)");
+                    if (finalScore >= minRT) {
+                        showMovie(movie, oData, rt ? rt.Value : finalScore + "% (IMDb)", movieYear);
                         found = true;
                         break;
                     }
                 }
             }
-            if (!found) alert("No movie hit that score. Try lowering the Min Score!");
+            if (!found) alert("No movie found. Try lowering the Min Score or setting the Year earlier!");
+            status.innerText = "";
         } catch (err) {
-            console.error(err);
-            alert("Error: Check your internet or ad-blocker.");
+            alert("Connection error. Ensure ad-blockers are off.");
         }
         btn.innerText = "Generate Movie";
         btn.disabled = false;
     }
 
-    function showMovie(m, o, s) {
+    function showMovie(m, o, s, y) {
         document.getElementById('movieResult').style.display = 'block';
         document.getElementById('title').innerText = m.title;
-        document.getElementById('year').innerText = m.release_date.split('-')[0];
-        document.getElementById('poster').src = m.poster_path ? "https://image.tmdb.org/t/p/w500" + m.poster_path : "https://via.placeholder.com/500x750?text=No+Poster";
+        document.getElementById('year').innerText = y || "N/A";
+        document.getElementById('poster').src = m.poster_path ? "https://image.tmdb.org/t/p/w500" + m.poster_path : "";
         document.getElementById('rtDisplay').innerText = s;
-        document.getElementById('actorList').innerText = o.Actors !== "N/A" ? o.Actors : "Cast information not available";
+        document.getElementById('actorList').innerText = o.Actors !== "N/A" ? o.Actors : "Cast not listed";
         
         fetch(`https://api.themoviedb.org/3/movie/${m.id}/videos?api_key=${TMDB_KEY}`)
             .then(res => res.json())
             .then(data => {
-                const trailer = data.results.find(v => (v.type === "Trailer" || v.type === "Teaser") && v.site === "YouTube");
+                const trailer = data.results.find(v => v.site === "YouTube" && (v.type === "Trailer" || v.type === "Teaser"));
                 const tLink = document.getElementById('trailer');
                 if (trailer) {
                     tLink.href = "https://www.youtube.com/watch?v=" + trailer.key;
