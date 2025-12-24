@@ -5,34 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sunday Movie Night</title>
     <style>
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #121212; color: #ffffff; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
-        .card { background: #1e1e1e; padding: 30px; border-radius: 20px; width: 380px; text-align: center; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        
-        .filter-box { text-align: left; background: #252525; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #444; }
-        label { font-size: 0.75rem; color: #5865F2; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 5px; }
-        select, input { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: none; background: #333; color: white; box-sizing: border-box; }
-
-        .gen-btn { width: 100%; padding: 15px; background: #5865F2; color: white; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; transition: 0.2s; }
-        .gen-btn:hover { background: #4752c4; }
-        
-        #movieResult { margin-top: 20px; display: none; border-top: 1px solid #333; padding-top: 20px; text-align: left; animation: fadeIn 0.4s ease-in; }
-        #poster { width: 100%; border-radius: 10px; margin-bottom: 15px; }
-        .movie-title { font-size: 1.6rem; margin: 0; text-align: center; }
-        .movie-year { color: #888; text-align: center; display: block; margin-bottom: 15px; font-size: 0.9rem; }
-        
-        .info-box { font-size: 0.85rem; color: #ccc; background: #2a2a2a; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
-        .label { color: #5865F2; font-weight: bold; font-size: 0.7rem; text-transform: uppercase; }
-
-        .trailer-btn { background: #FF0000; color: white; font-weight: bold; text-decoration: none; display: flex; padding: 12px; border-radius: 8px; align-items: center; justify-content: center; gap: 8px; }
-        
+        body { font-family: sans-serif; background: #121212; color: white; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        .card { background: #1e1e1e; padding: 25px; border-radius: 15px; width: 100%; max-width: 380px; border: 1px solid #333; text-align: center; }
+        .filter-box { text-align: left; background: #252525; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
+        label { font-size: 0.7rem; color: #5865F2; font-weight: bold; text-transform: uppercase; }
+        select, input { width: 100%; padding: 10px; margin: 5px 0 15px 0; border-radius: 8px; border: none; background: #333; color: white; box-sizing: border-box; }
+        .gen-btn { width: 100%; padding: 15px; background: #5865F2; color: white; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; }
+        #movieResult { display: none; margin-top: 20px; text-align: left; border-top: 1px solid #444; padding-top: 20px; animation: fadeIn 0.5s; }
+        #poster { width: 100%; border-radius: 10px; margin-bottom: 10px; }
+        .rt-score { color: #fa320a; font-weight: bold; font-size: 1.2rem; margin: 10px 0; display: flex; align-items: center; gap: 10px; justify-content: center; background: rgba(250, 50, 10, 0.1); padding: 8px; border-radius: 8px; }
+        .actors { font-size: 0.85rem; color: #ccc; background: #2a2a2a; padding: 10px; border-radius: 5px; }
+        .trailer-btn { background: #ff0000; color: white; text-decoration: none; padding: 12px; display: none; text-align: center; border-radius: 5px; margin-top: 15px; font-weight: bold; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h1 style="margin-top:0;">Movie Night</h1>
-    
+    <h2 style="margin-top:0;">🎬 Movie Night</h2>
     <div class="filter-box">
         <label>Genre</label>
         <select id="genre">
@@ -42,74 +32,85 @@
             <option value="878">Sci-Fi</option>
             <option value="16">Animation</option>
         </select>
-
         <label>Released After Year</label>
         <input type="number" id="minYear" value="2020">
     </div>
-
-    <button class="gen-btn" onclick="generateMovie()">Generate Movie</button>
+    <button class="gen-btn" id="genBtn" onclick="generateMovie()">Generate Movie</button>
 
     <div id="movieResult">
-        <img id="poster" src="" alt="Poster">
-        <h2 id="title" class="movie-title"></h2>
-        <span id="year" class="movie-year"></span>
+        <img id="poster" src="">
+        <h3 id="title" style="margin: 10px 0; text-align:center;"></h3>
+        <p id="year" style="color:#888; margin:0; text-align:center; font-size: 0.8rem;"></p>
         
-        <div class="info-box">
-            <span class="label">Starring:</span><br>
-            <span id="actorList"></span>
+        <div id="scoreBox" class="rt-score">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5b/Rotten_Tomatoes.svg" width="22">
+            <span id="rtDisplay">--</span>
         </div>
 
-        <a id="trailerLink" href="#" target="_blank" class="trailer-btn">▶ Watch Trailer</a>
+        <div class="actors"><strong>Starring:</strong> <span id="actorList"></span></div>
+        <a id="trailer" target="_blank" class="trailer-btn">▶ Watch Trailer</a>
     </div>
 </div>
 
 <script>
-    const API_KEY = '88b69ffc8cf460d82c9664da36b87476'; 
+    const TMDB_KEY = '88b69ffc8cf460d82c9664da36b87476';
+    const OMDB_KEY = '83f31f61';
 
     async function generateMovie() {
-        const genreId = document.getElementById('genre').value;
-        const minYear = document.getElementById('minYear').value;
+        const btn = document.getElementById('genBtn');
+        btn.innerText = "Searching...";
+        btn.disabled = true;
 
-        // Fetch popular movies after the specific year
-        const url = `https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_genres=${genreId}&primary_release_date.gte=${minYear}-01-01&sort_by=popularity.desc&language=en-US&page=${Math.floor(Math.random() * 3) + 1}`;
+        const genre = document.getElementById('genre').value;
+        const minYear = document.getElementById('minYear').value;
+        const today = new Date().toISOString().split('T')[0];
+
+        // This URL forces the search between YOUR YEAR and TODAY, and picks a random page
+        const url = `https://api.themoviedb.org/3/discover/movie?api_key=${TMDB_KEY}&with_genres=${genre}&primary_release_date.gte=${minYear}-01-01&primary_release_date.lte=${today}&sort_by=popularity.desc&page=${Math.floor(Math.random() * 5) + 1}`;
 
         try {
             const res = await fetch(url);
             const data = await res.json();
             
             if (data.results && data.results.length > 0) {
-                const movie = data.results[Math.floor(Math.random() * data.results.length)];
-                
-                // Display basic info
-                document.getElementById('title').innerText = movie.title;
-                document.getElementById('year').innerText = movie.release_date.split('-')[0];
-                document.getElementById('poster').src = `https://image.tmdb.org/t/p/w500${movie.poster_path}`;
+                // Shuffle results to ensure we don't just see the same 2025 movies
+                const movies = data.results.sort(() => Math.random() - 0.5);
+                const movie = movies[0];
+                const movieYear = movie.release_date.split('-')[0];
+
+                // Get Score & Actors from OMDB
+                const oRes = await fetch(`https://www.omdbapi.com/?t=${encodeURIComponent(movie.title)}&y=${movieYear}&apikey=${OMDB_KEY}`);
+                const oData = await oRes.json();
+
+                let score = "N/A";
+                if (oData.Response === "True") {
+                    const rt = oData.Ratings ? oData.Ratings.find(r => r.Source === "Rotten Tomatoes") : null;
+                    score = rt ? rt.Value : (oData.imdbRating !== "N/A" ? oData.imdbRating + "/10" : "N/A");
+                }
+
+                // UI Update
                 document.getElementById('movieResult').style.display = 'block';
+                document.getElementById('title').innerText = movie.title;
+                document.getElementById('year').innerText = "Year: " + movieYear;
+                document.getElementById('poster').src = "https://image.tmdb.org/t/p/w500" + movie.poster_path;
+                document.getElementById('rtDisplay').innerText = score;
+                document.getElementById('actorList').innerText = oData.Actors || "Not found";
 
-                // Fetch Cast (Actors)
-                const creditsRes = await fetch(`https://api.themoviedb.org/3/movie/${movie.id}/credits?api_key=${API_KEY}`);
-                const creditsData = await creditsRes.json();
-                const mainActors = creditsData.cast.slice(0, 4).map(a => a.name).join(', ');
-                document.getElementById('actorList').innerText = mainActors || "Cast information unavailable";
-
-                // Fetch Trailer
-                const videoRes = await fetch(`https://api.themoviedb.org/3/movie/${movie.id}/videos?api_key=${API_KEY}`);
-                const videoData = await videoRes.json();
-                const trailer = videoData.results.find(v => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser'));
-                
-                const tBtn = document.getElementById('trailerLink');
+                // Trailer
+                const vRes = await fetch(`https://api.themoviedb.org/3/movie/${movie.id}/videos?api_key=${TMDB_KEY}`);
+                const vData = await vRes.json();
+                const trailer = vData.results.find(v => v.site === "YouTube" && (v.type === "Trailer" || v.type === "Teaser"));
+                const tBtn = document.getElementById('trailer');
                 if (trailer) {
                     tBtn.href = `https://www.youtube.com/watch?v=${trailer.key}`;
-                    tBtn.style.display = 'flex';
-                } else {
-                    tBtn.style.display = 'none';
-                }
+                    tBtn.style.display = "block";
+                } else { tBtn.style.display = "none"; }
             }
-        } catch (error) {
-            alert("Error loading movies. Please try again!");
-        }
+        } catch (err) { console.error(err); }
+        
+        btn.innerText = "Generate Movie";
+        btn.disabled = false;
     }
 </script>
-
 </body>
 </html>
