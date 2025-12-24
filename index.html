@@ -18,11 +18,8 @@
         #movieResult { margin-top: 20px; display: none; border-top: 1px solid #333; padding-top: 20px; text-align: left; animation: fadeIn 0.4s ease-in; }
         #poster { width: 100%; border-radius: 10px; margin-bottom: 15px; }
         .movie-title { font-size: 1.6rem; margin: 0; text-align: center; }
-        .movie-year { color: #888; text-align: center; display: block; margin-bottom: 10px; font-size: 0.9rem; }
+        .movie-year { color: #888; text-align: center; display: block; margin-bottom: 15px; font-size: 0.9rem; }
         
-        .score-box { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 15px; background: rgba(250, 50, 10, 0.1); padding: 10px; border-radius: 8px; border: 1px solid rgba(250, 50, 10, 0.2); }
-        .score-val { color: #fa320a; font-weight: bold; font-size: 1.3rem; }
-
         .info-box { font-size: 0.85rem; color: #ccc; background: #2a2a2a; padding: 12px; border-radius: 8px; margin-bottom: 15px; }
         .label { color: #5865F2; font-weight: bold; font-size: 0.7rem; text-transform: uppercase; }
 
@@ -50,17 +47,12 @@
         <input type="number" id="minYear" value="2020">
     </div>
 
-    <button class="gen-btn" id="genBtn" onclick="generateMovie()">Generate Movie</button>
+    <button class="gen-btn" onclick="generateMovie()">Generate Movie</button>
 
     <div id="movieResult">
         <img id="poster" src="" alt="Poster">
         <h2 id="title" class="movie-title"></h2>
         <span id="year" class="movie-year"></span>
-
-        <div class="score-box">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5b/Rotten_Tomatoes.svg" width="25">
-            <span id="scoreDisplay" class="score-val">--</span>
-        </div>
         
         <div class="info-box">
             <span class="label">Starring:</span><br>
@@ -72,18 +64,14 @@
 </div>
 
 <script>
-    const TMDB_KEY = '88b69ffc8cf460d82c9664da36b87476'; 
-    const OMDB_KEY = '83f31f61';
+    const API_KEY = '88b69ffc8cf460d82c9664da36b87476'; 
 
     async function generateMovie() {
-        const btn = document.getElementById('genBtn');
         const genreId = document.getElementById('genre').value;
         const minYear = document.getElementById('minYear').value;
-        
-        btn.innerText = "Searching...";
-        btn.disabled = true;
 
-        const url = `https://api.themoviedb.org/3/discover/movie?api_key=${TMDB_KEY}&with_genres=${genreId}&primary_release_date.gte=${minYear}-01-01&sort_by=popularity.desc&page=${Math.floor(Math.random() * 5) + 1}`;
+        // Fetch popular movies after the specific year
+        const url = `https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_genres=${genreId}&primary_release_date.gte=${minYear}-01-01&sort_by=popularity.desc&language=en-US&page=${Math.floor(Math.random() * 3) + 1}`;
 
         try {
             const res = await fetch(url);
@@ -91,28 +79,21 @@
             
             if (data.results && data.results.length > 0) {
                 const movie = data.results[Math.floor(Math.random() * data.results.length)];
-                const year = movie.release_date.split('-')[0];
-
-                // Fetch Score and Actors from OMDB
-                const omdbRes = await fetch(`https://www.omdbapi.com/?t=${encodeURIComponent(movie.title)}&y=${year}&apikey=${OMDB_KEY}`);
-                const omdbData = await omdbRes.json();
-
-                let rating = "N/A";
-                if (omdbData.Response === "True") {
-                    const rt = omdbData.Ratings ? omdbData.Ratings.find(r => r.Source === "Rotten Tomatoes") : null;
-                    rating = rt ? rt.Value : (omdbData.imdbRating !== "N/A" ? omdbData.imdbRating + "/10" : "N/A");
-                }
-
-                // UI Updates
+                
+                // Display basic info
                 document.getElementById('title').innerText = movie.title;
-                document.getElementById('year').innerText = year;
-                document.getElementById('scoreDisplay').innerText = rating;
-                document.getElementById('actorList').innerText = omdbData.Actors || "Unknown";
+                document.getElementById('year').innerText = movie.release_date.split('-')[0];
                 document.getElementById('poster').src = `https://image.tmdb.org/t/p/w500${movie.poster_path}`;
                 document.getElementById('movieResult').style.display = 'block';
 
+                // Fetch Cast (Actors)
+                const creditsRes = await fetch(`https://api.themoviedb.org/3/movie/${movie.id}/credits?api_key=${API_KEY}`);
+                const creditsData = await creditsRes.json();
+                const mainActors = creditsData.cast.slice(0, 4).map(a => a.name).join(', ');
+                document.getElementById('actorList').innerText = mainActors || "Cast information unavailable";
+
                 // Fetch Trailer
-                const videoRes = await fetch(`https://api.themoviedb.org/3/movie/${movie.id}/videos?api_key=${TMDB_KEY}`);
+                const videoRes = await fetch(`https://api.themoviedb.org/3/movie/${movie.id}/videos?api_key=${API_KEY}`);
                 const videoData = await videoRes.json();
                 const trailer = videoData.results.find(v => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser'));
                 
@@ -127,8 +108,6 @@
         } catch (error) {
             alert("Error loading movies. Please try again!");
         }
-        btn.innerText = "Generate Movie";
-        btn.disabled = false;
     }
 </script>
 
