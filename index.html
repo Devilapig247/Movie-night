@@ -53,36 +53,42 @@
 </div>
 
 <script>
+    // I am using the keys you provided
     const TMDB_API_KEY = '88b69ffc8cf460d82c9664da36b87476'; 
     const OMDB_API_KEY = '83f31f61';
 
     async function generateMovie() {
-        const genreId = document.getElementById('genre').value;
-        const tmdbUrl = `https://api.themoviedb.org/3/discover/movie?api_key=${TMDB_API_KEY}&with_genres=${genreId}&sort_by=popularity.desc&page=${Math.floor(Math.random() * 5) + 1}`;
+        // We use page 1 to ensure we always get a result for testing
+        const tmdbUrl = `https://api.themoviedb.org/3/discover/movie?api_key=${TMDB_API_KEY}&with_genres=${document.getElementById('genre').value}&sort_by=popularity.desc&page=1`;
 
         try {
             const tmdbRes = await fetch(tmdbUrl);
+            if (!tmdbRes.ok) throw new Error("TMDB Key Invalid");
+            
             const tmdbData = await tmdbRes.json();
             const movie = tmdbData.results[Math.floor(Math.random() * tmdbData.results.length)];
 
-            // Display Title and Poster immediately
+            // Update UI
             document.getElementById('title').innerText = movie.title;
-            document.getElementById('poster').src = `https://image.tmdb.org/t/p/w500${movie.poster_path}`;
+            document.getElementById('poster').src = movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : 'https://via.placeholder.com/500x750?text=No+Poster';
             document.getElementById('movieResult').style.display = 'block';
             document.getElementById('rtScore').innerText = "Searching...";
 
-            // Now fetch the Rotten Tomatoes score from OMDb using the movie title
+            // OMDb Request
             const omdbUrl = `https://www.omdbapi.com/?t=${encodeURIComponent(movie.title)}&apikey=${OMDB_API_KEY}`;
             const omdbRes = await fetch(omdbUrl);
             const omdbData = await omdbRes.json();
 
-            // Find the Rotten Tomatoes rating in the list of ratings
-            const rtRating = omdbData.Ratings ? omdbData.Ratings.find(r => r.Source === "Rotten Tomatoes") : null;
-            document.getElementById('rtScore').innerText = rtRating ? rtRating.Value : "N/A";
+            if (omdbData.Response === "True" && omdbData.Ratings) {
+                const rtRating = omdbData.Ratings.find(r => r.Source === "Rotten Tomatoes");
+                document.getElementById('rtScore').innerText = rtRating ? rtRating.Value : "N/A";
+            } else {
+                document.getElementById('rtScore').innerText = "N/A";
+            }
 
         } catch (error) {
-            console.error(error);
-            alert("Check your API keys!");
+            console.error("Error details:", error);
+            alert("Connection error! Check your internet or API key status.");
         }
     }
 </script>
