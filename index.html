@@ -9,6 +9,10 @@
         .card { background: #1e1e1e; padding: 30px; border-radius: 20px; width: 100%; max-width: 380px; text-align: center; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         
         .filter-box { text-align: left; background: #252525; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #444; }
+        
+        .year-row { display: flex; gap: 10px; }
+        .year-group { flex: 1; }
+
         label { font-size: 0.75rem; color: #5865F2; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 5px; }
         select, input { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: none; background: #333; color: white; box-sizing: border-box; font-size: 1rem; }
 
@@ -47,10 +51,20 @@
             <option value="878">Sci-Fi</option>
             <option value="16">Animation</option>
             <option value="53">Thriller</option>
+            <option value="12">Adventure</option>
+            <option value="10749">Romance</option>
         </select>
 
-        <label>Min Year</label>
-        <input type="number" id="minYear" value="2015">
+        <div class="year-row">
+            <div class="year-group">
+                <label>Min Year</label>
+                <input type="number" id="minYear" value="2000">
+            </div>
+            <div class="year-group">
+                <label>Max Year</label>
+                <input type="number" id="maxYear" value="2024">
+            </div>
+        </div>
     </div>
 
     <button class="gen-btn" id="genBtn" onclick="generateMovie()">Generate Movie</button>
@@ -82,39 +96,45 @@
         const btn = document.getElementById('genBtn');
         const genreId = document.getElementById('genre').value;
         const minYearInput = parseInt(document.getElementById('minYear').value);
-        const currentYear = 2024;
+        const maxYearInput = parseInt(document.getElementById('maxYear').value);
         
+        // Validation: Ensure Max isn't lower than Min
+        if (maxYearInput < minYearInput) {
+            alert("Max Year cannot be lower than Min Year!");
+            return;
+        }
+
         btn.innerText = "Scanning Databases...";
         btn.disabled = true;
 
-        // 1. Random Year Selection (Prevents "2025 only" issue)
-        const randomYear = Math.floor(Math.random() * (currentYear - minYearInput + 1)) + minYearInput;
+        // 1. Pick a Random Year between Min and Max
+        const randomYear = Math.floor(Math.random() * (maxYearInput - minYearInput + 1)) + minYearInput;
 
         try {
-            // 2. Fetch from TMDB
+            // 2. Fetch from TMDB for that specific year
             const url = `https://api.themoviedb.org/3/discover/movie?api_key=${TMDB_KEY}&with_genres=${genreId}&primary_release_year=${randomYear}&sort_by=vote_count.desc&page=1`;
             const res = await fetch(url);
             const data = await res.json();
             
             if (data.results && data.results.length > 0) {
-                // Shuffle and pick
+                // Shuffle results
                 const movies = data.results.sort(() => Math.random() - 0.5);
                 const movie = movies[0];
                 const movieYear = movie.release_date ? movie.release_date.split('-')[0] : randomYear;
 
-                // Show Data Immediately (Don't wait for OMDb yet)
+                // UI: Show Movie Basic Info
                 document.getElementById('title').innerText = movie.title;
                 document.getElementById('year').innerText = "Released: " + movieYear;
                 document.getElementById('poster').src = movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : 'https://via.placeholder.com/500x750?text=No+Poster';
                 document.getElementById('movieResult').style.display = 'block';
 
-                // 3. GUARANTEED CAST (Fetch from TMDB, not OMDb)
+                // 3. FETCH CAST (Reliable TMDB method)
                 const creditsRes = await fetch(`https://api.themoviedb.org/3/movie/${movie.id}/credits?api_key=${TMDB_KEY}`);
                 const creditsData = await creditsRes.json();
                 const cast = creditsData.cast.slice(0, 4).map(c => c.name).join(", ");
                 document.getElementById('actorList').innerText = cast || "Cast info unavailable";
 
-                // 4. ROBUST SCORE FETCH (Try OMDb with Year -> Then OMDb without Year -> Then Fallback to TMDB User Score)
+                // 4. FETCH SCORE (Robust OMDb -> Fallback method)
                 let rating = "N/A";
                 
                 // Try OMDb WITH Year
@@ -127,32 +147,32 @@
                     omdbData = await omdbRes.json();
                 }
 
-                // Determine Score
                 if (omdbData.Response === "True") {
                     const rt = omdbData.Ratings ? omdbData.Ratings.find(r => r.Source === "Rotten Tomatoes") : null;
                     rating = rt ? rt.Value : (omdbData.imdbRating !== "N/A" ? omdbData.imdbRating + "/10 (IMDb)" : "N/A");
                 } 
                 
-                // Final Backup: If OMDb failed completely, use TMDB Score
+                // Final Backup: TMDB User Score
                 if (rating === "N/A" || rating === undefined) {
                     rating = Math.round(movie.vote_average * 10) + "% (User Score)";
                 }
                 document.getElementById('scoreDisplay').innerText = rating;
 
-                // 5. Get Trailer
+                // 5. FETCH TRAILER (Fixed Link)
                 const videoRes = await fetch(`https://api.themoviedb.org/3/movie/${movie.id}/videos?api_key=${TMDB_KEY}`);
                 const videoData = await videoRes.json();
                 const trailer = videoData.results.find(v => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser'));
                 
                 const tBtn = document.getElementById('trailerLink');
                 if (trailer) {
-                    tBtn.href = `http://googleusercontent.com/youtube.com/watch?v=${trailer.key}`;
+                    // Fixed the URL here
+                    tBtn.href = `https://www.youtube.com/watch?v=${trailer.key}`;
                     tBtn.style.display = 'flex';
                 } else {
                     tBtn.style.display = 'none';
                 }
             } else {
-                alert("No movies found for that filter. Try again.");
+                alert(`No movies found for ${randomYear}. Try different filters.`);
             }
         } catch (error) {
             console.error(error);
