@@ -3,204 +3,407 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sunday Movie Night</title>
+    <title>Sunday Night Cinema</title>
     <style>
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #121212; color: #ffffff; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
-        
-        /* POPUP MODAL STYLES */
+        :root {
+            --gold: #d4af37;
+            --dark-red: #4a0404;
+            --velvet: #800000;
+            --theatre-black: #0a0a0a;
+        }
+
+        body { 
+            font-family: 'Georgia', serif; 
+            background: radial-gradient(circle, var(--velvet) 0%, var(--dark-red) 70%, var(--theatre-black) 100%);
+            background-attachment: fixed;
+            color: #ffffff; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            min-height: 100vh; 
+            margin: 0; 
+            padding: 20px; 
+            gap: 40px; 
+            overflow-x: hidden;
+        }
+
+        .popcorn {
+            position: fixed;
+            font-size: 2rem;
+            pointer-events: none;
+            z-index: 10000;
+            user-select: none;
+        }
+
+        h1 { 
+            font-size: 2.5rem; 
+            text-transform: uppercase; 
+            letter-spacing: 4px; 
+            color: #fff; 
+            text-shadow: 0 0 10px var(--gold), 0 0 20px var(--gold);
+            margin-bottom: 10px;
+        }
+
         #welcomePopup {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.9);
+            background: rgba(0, 0, 0, 0.95);
             display: flex; justify-content: center; align-items: center;
             z-index: 9999;
         }
         .popup-content {
-            background: #1e1e1e; padding: 40px; border-radius: 20px;
+            background: var(--theatre-black); padding: 40px; border-radius: 5px;
             max-width: 450px; width: 90%; text-align: center;
-            border: 2px solid #5865F2; box-shadow: 0 0 20px rgba(88, 101, 242, 0.4);
+            border: 5px double var(--gold); box-shadow: 0 0 30px rgba(212, 175, 55, 0.3);
         }
-        .popup-content h2 { color: #5865F2; margin-top: 0; }
-        .popup-content p { font-size: 1.1rem; line-height: 1.5; color: #ddd; }
-        .popup-btns { display: flex; flex-direction: column; gap: 10px; margin-top: 25px; }
+
+        /* Added spacing for the popup buttons */
         .discord-link {
-            background: #5865F2; color: white; padding: 12px;
-            border-radius: 8px; text-decoration: none; font-weight: bold;
+            display: block;
+            background: var(--gold);
+            color: #000;
+            padding: 12px;
+            text-decoration: none;
+            font-weight: bold;
+            margin-bottom: 20px; /* This creates the gap */
             transition: 0.3s;
         }
-        .discord-link:hover { background: #4752c4; transform: scale(1.02); }
-        .enter-btn {
-            background: transparent; color: #888; border: 1px solid #444;
-            padding: 10px; border-radius: 8px; cursor: pointer; transition: 0.3s;
-        }
-        .enter-btn:hover { color: white; border-color: #777; }
+        .discord-link:hover { filter: brightness(1.2); }
 
-        /* GENERATOR CARD STYLES */
-        .card { background: #1e1e1e; padding: 30px; border-radius: 20px; width: 100%; max-width: 400px; text-align: center; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        .filter-box { text-align: left; background: #252525; padding: 20px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #444; }
-        .year-container { display: flex; gap: 15px; }
-        .year-group { flex: 1; }
-        label { font-size: 0.75rem; color: #5865F2; font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 8px; }
-        select, input { width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px; border: none; background: #333; color: white; box-sizing: border-box; font-size: 1rem; }
-        .gen-btn { width: 100%; padding: 15px; background: #5865F2; color: white; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; font-size: 1.1rem; transition: 0.2s; }
-        .gen-btn:hover { background: #4752c4; }
-        .gen-btn:disabled { background: #444; cursor: not-allowed; opacity: 0.7; }
-        #movieResult { margin-top: 25px; display: none; border-top: 1px solid #333; padding-top: 20px; text-align: left; animation: fadeIn 0.4s ease-in; }
-        #poster { width: 100%; border-radius: 10px; margin-bottom: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.4); }
-        .movie-title { font-size: 1.6rem; margin: 0; text-align: center; color: #fff; }
-        .movie-year { color: #888; text-align: center; display: block; margin-bottom: 10px; font-size: 1rem; }
-        .score-box { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 15px; background: rgba(250, 50, 10, 0.15); padding: 10px; border-radius: 8px; border: 1px solid rgba(250, 50, 10, 0.3); }
-        .score-val { color: #fa320a; font-weight: bold; font-size: 1.4rem; }
-        .info-box { font-size: 0.9rem; color: #ccc; background: #2a2a2a; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #5865F2; }
-        .label { color: #5865F2; font-weight: bold; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; }
-        .trailer-btn { background: #FF0000; color: white; font-weight: bold; text-decoration: none; display: flex; padding: 14px; border-radius: 8px; align-items: center; justify-content: center; gap: 8px; transition: 0.2s; }
-        .trailer-btn:hover { background: #cc0000; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .card { 
+            background: rgba(10, 10, 10, 0.9); 
+            padding: 30px; 
+            border-radius: 4px; 
+            width: 100%; 
+            max-width: 450px; 
+            text-align: center; 
+            border: 3px solid var(--gold); 
+            box-shadow: 0 15px 50px rgba(0,0,0,0.8), inset 0 0 20px rgba(212,175,55,0.1); 
+            position: relative;
+        }
+
+        .filter-box { 
+            text-align: left; 
+            background: #1a1a1a; 
+            padding: 20px; 
+            border: 1px inset var(--gold);
+            margin-bottom: 20px; 
+        }
+
+        .genre-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 10px;
+            max-height: 150px;
+            overflow-y: auto;
+            padding: 8px;
+            border: 1px solid #444;
+            background: #000;
+        }
+        .genre-option {
+            display: flex;
+            align-items: center;
+            font-size: 0.85rem;
+            cursor: pointer;
+            color: #ccc;
+        }
+        .genre-option:hover { color: var(--gold); }
+        .genre-option input {
+            width: auto;
+            margin: 0 8px 0 0;
+            cursor: pointer;
+        }
+
+        label { font-size: 0.75rem; color: var(--gold); font-weight: bold; text-transform: uppercase; display: block; margin-bottom: 8px; }
+        input[type="number"], textarea { 
+            width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 0; 
+            border: 1px solid #444; background: #000; color: #fff; box-sizing: border-box; 
+        }
+
+        textarea {
+            resize: none;
+            overflow: hidden;
+            min-height: 80px;
+            max-height: 400px;
+            transition: height 0.1s ease;
+        }
+
+        .gen-btn { 
+            width: 100%; padding: 18px; 
+            background: linear-gradient(45deg, #b8860b, var(--gold)); 
+            color: #000; font-weight: 900; border: none; 
+            cursor: pointer; font-size: 1.2rem; text-transform: uppercase;
+            clip-path: polygon(10% 0, 90% 0, 100% 50%, 90% 100%, 10% 100%, 0 50%);
+            transition: 0.3s;
+        }
+        .gen-btn:hover { transform: scale(1.05); filter: brightness(1.2); }
+
+        #movieResult { 
+            margin-top: 25px; display: none; border-top: 2px dashed var(--gold); 
+            padding-top: 20px; text-align: left; animation: fadeIn 0.8s ease-in; 
+        }
+        #poster { width: 100%; border: 4px solid #fff; margin-bottom: 15px; }
+
+        .info-box { 
+            background: #151515; padding: 15px; border-radius: 0; 
+            margin-bottom: 15px; border-left: 5px solid var(--gold); 
+        }
+
+        .collapse-btn { 
+            background: var(--gold); border: none; color: #000; font-weight: bold; 
+            cursor: pointer; padding: 5px 15px; position: absolute; right: 0; top: -35px;
+        }
+        .wheel-content { max-height: 0; overflow: hidden; transition: max-height 0.5s ease; }
+        .wheel-content.open { max-height: 2000px; margin-top: 20px; }
+
+        .wheel-container { border: 8px solid var(--gold); border-radius: 50%; padding: 5px; background: #000; }
+        .secondary-btn { 
+            background: transparent; border: 1px solid var(--gold); 
+            padding: 10px; color: var(--gold); cursor: pointer; text-transform: uppercase;
+            font-size: 0.7rem;
+        }
+        .secondary-btn:hover { background: var(--gold); color: #000; }
+
+        .add-to-wheel-btn {
+            background: #222; color: var(--gold); border: 1px solid var(--gold);
+            width: 100%; padding: 12px; margin-bottom: 15px; cursor: pointer;
+            font-weight: bold; text-transform: uppercase; transition: 0.2s;
+        }
+        .add-to-wheel-btn:hover { background: var(--gold); color: #000; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
 <body>
 
 <div id="welcomePopup">
     <div class="popup-content">
-        <h2>Hello Everyone! 👋</h2>
-        <p>Every Sunday at <b>6pm</b> we will watch a movie on the discord server below. This tool will be used to decide the movies we watch!</p>
+        <h2 style="color:var(--gold)">Hello Everyone</h2>
+        <p>Every Sunday at <b>6pm</b> we will watch a movie on the Discord server. Use the tools below to decide!</p>
         <div class="popup-btns">
-            <a href="https://discord.gg/XdcpUT4YSA" target="_blank" class="discord-link">Join Discord Server</a>
-            <button class="enter-btn" onclick="closePopup()">Continue to Generator</button>
+            <a href="https://discord.gg/XdcpUT4YSA" target="_blank" class="discord-link">JOIN THE DISCORD</a>
+            <button class="secondary-btn" style="width: 100%; padding: 12px;" onclick="closePopup()">ENTER GENERATOR</button>
         </div>
     </div>
 </div>
 
-<div class="card">
-    <h1 style="margin-top:0; color: #5865F2;">Movie Night</h1>
-    <div class="filter-box">
-        <label>Genre</label>
-        <select id="genre">
-            <option value="28">Action</option>
-            <option value="35">Comedy</option>
-            <option value="27">Horror</option>
-            <option value="878">Sci-Fi</option>
-            <option value="16">Animation</option>
-            <option value="53">Thriller</option>
-            <option value="12">Adventure</option>
-            <option value="10749">Romance</option>
-        </select>
+<h1 style="text-align: center;">🍿 Sunday Movie Night 🍿</h1>
 
-        <div class="year-container">
-            <div class="year-group">
-                <label>From Year</label>
+<div class="card">
+    <h2 style="color: var(--gold); margin-top:0;">MOVIE GENERATOR</h2>
+    <div class="filter-box">
+        <div style="display:flex; justify-content:space-between; align-items: center; margin-bottom: 5px;">
+            <label style="margin:0;">Select Genres (Matches ALL)</label>
+            <button class="secondary-btn" style="padding: 2px 8px;" onclick="clearGenres()">Clear</button>
+        </div>
+        <div class="genre-grid" id="genreList"></div>
+        
+        <div style="display:flex; gap:10px;">
+            <div style="flex:1">
+                <label>From</label>
                 <input type="number" id="minYear" value="2000">
             </div>
-            <div class="year-group">
-                <label>To Year</label>
-                <input type="number" id="maxYear" value="2024">
+            <div style="flex:1">
+                <label>To</label>
+                <input type="number" id="maxYear" value="2025">
             </div>
         </div>
     </div>
 
-    <button class="gen-btn" id="genBtn" onclick="generateMovie()">Generate Movie</button>
+    <button class="gen-btn" id="genBtn" onclick="generateMovie()">GENERATE MOVIE</button>
 
     <div id="movieResult">
+        <h2 id="title" class="movie-title" style="text-align:center; text-transform:uppercase;"></h2>
         <img id="poster" src="" alt="Poster">
-        <h2 id="title" class="movie-title"></h2>
-        <span id="year" class="movie-year"></span>
-        <div class="score-box">
-            <img src="https://upload.wikimedia.org/wikipedia/commons/5/5b/Rotten_Tomatoes.svg" width="28" height="28">
-            <span id="scoreDisplay" class="score-val">--</span>
+        <button class="add-to-wheel-btn" onclick="addCurrentMovieToWheel()">+ Add to Movie Wheel</button>
+        <div class="info-box" id="streamingSection">
+            <span class="label">Playing on (AU):</span><br>
+            <div id="streamingList" class="provider-container" style="display:flex; gap:10px; margin-top:10px;"></div>
         </div>
-        <div class="info-box">
-            <span class="label">Starring:</span><br>
-            <span id="actorList" style="display: block; margin-top: 5px;">Loading cast...</span>
+        <a id="trailerLink" href="#" target="_blank" style="background:#cc0000; color:white; display:block; text-align:center; padding:15px; text-decoration:none; font-weight:bold;">▶ WATCH TRAILER</a>
+    </div>
+</div>
+
+<div class="card" style="margin-top:20px;">
+    <button class="collapse-btn" onclick="toggleWheel()">THE MOVIE WHEEL</button>
+    <div id="wheelContent" class="wheel-content">
+        <textarea id="wheelInput" placeholder="Enter movie titles here..." oninput="autoExpand(this)">Shrek&#10;The Matrix&#10;Inception</textarea>
+        <div style="display:flex; justify-content:center; margin-bottom:20px;">
+            <button id="spinBtn" class="secondary-btn" style="background:var(--gold); color:#000; width: 100%; font-size: 1rem;" onclick="spinWheel()">SPIN WHEEL</button>
         </div>
-        <a id="trailerLink" href="#" target="_blank" class="trailer-btn">▶ Watch Trailer</a>
+        <div id="wheelWrapper" class="wheel-container" style="position:relative; width:300px; height:300px; margin:auto;">
+            <div class="arrow" style="position:absolute; top:-20px; left:50%; transform:translateX(-50%); border-left:15px solid transparent; border-right:15px solid transparent; border-top:25px solid var(--gold); z-index:10;"></div>
+            <canvas id="wheelCanvas" width="500" height="500" style="width:100%; height:100%; border-radius:50%; transition: transform 4s cubic-bezier(0.1, 0.7, 0.1, 1);"></canvas>
+        </div>
     </div>
 </div>
 
 <script>
     const TMDB_KEY = '88b69ffc8cf460d82c9664da36b87476'; 
-    const OMDB_KEY = '83f31f61';
+    const GENRES = [
+        {id: 28, name: "Action"}, {id: 12, name: "Adventure"}, {id: 16, name: "Animation"},
+        {id: 35, name: "Comedy"}, {id: 80, name: "Crime"}, {id: 99, name: "Documentary"},
+        {id: 18, name: "Drama"}, {id: 10751, name: "Family"}, {id: 14, name: "Fantasy"},
+        {id: 36, name: "History"}, {id: 27, name: "Horror"}, {id: 10402, name: "Music"},
+        {id: 9648, name: "Mystery"}, {id: 10749, name: "Romance"}, {id: 878, name: "Sci-Fi"},
+        {id: 53, name: "Thriller"}, {id: 10752, name: "War"}
+    ];
 
-    // POPUP FUNCTION
-    function closePopup() {
-        document.getElementById('welcomePopup').style.display = 'none';
+    function initGenres() {
+        const container = document.getElementById('genreList');
+        GENRES.forEach(g => {
+            const label = document.createElement('label');
+            label.className = 'genre-option';
+            label.innerHTML = `<input type="checkbox" value="${g.id}"> ${g.name}`;
+            container.appendChild(label);
+        });
+    }
+
+    function clearGenres() {
+        document.querySelectorAll('#genreList input').forEach(i => i.checked = false);
+    }
+
+    function closePopup() { document.getElementById('welcomePopup').style.display = 'none'; }
+    
+    function toggleWheel() { 
+        const content = document.getElementById('wheelContent');
+        content.classList.toggle('open');
+        if(content.classList.contains('open')) {
+            setTimeout(() => {
+                const area = document.getElementById('wheelInput');
+                autoExpand(area);
+                drawWheel();
+            }, 100);
+        }
+    }
+
+    function autoExpand(field) {
+        field.style.height = 'inherit';
+        field.style.height = field.scrollHeight + 'px';
+        drawWheel(); 
+    }
+
+    function addCurrentMovieToWheel() {
+        const title = document.getElementById('title').innerText;
+        const input = document.getElementById('wheelInput');
+        input.value = input.value.trim() === "" ? title : input.value.trim() + "\n" + title;
+        autoExpand(input);
+        const btn = document.querySelector('.add-to-wheel-btn');
+        btn.innerText = "ADDED!";
+        setTimeout(() => { btn.innerText = "+ Add to Movie Wheel"; }, 1000);
     }
 
     async function generateMovie() {
         const btn = document.getElementById('genBtn');
-        const genreId = document.getElementById('genre').value;
-        const minYearInput = parseInt(document.getElementById('minYear').value);
-        const maxYearInput = parseInt(document.getElementById('maxYear').value);
+        const selectedGenres = Array.from(document.querySelectorAll('#genreList input:checked')).map(i => i.value);
         
-        if (maxYearInput < minYearInput) {
-            alert("Error: 'To Year' cannot be smaller than 'From Year'");
-            return;
-        }
+        if(selectedGenres.length === 0) { alert("Please select at least one genre!"); return; }
 
-        btn.innerText = "Finding Movie...";
-        btn.disabled = true;
-
-        const randomYear = Math.floor(Math.random() * (maxYearInput - minYearInput + 1)) + minYearInput;
+        btn.innerText = "GENERATING..."; btn.disabled = true;
+        
+        const genreString = selectedGenres.join(',');
+        const minVal = parseInt(document.getElementById('minYear').value);
+        const maxVal = parseInt(document.getElementById('maxYear').value);
+        const randomYear = Math.floor(Math.random() * (maxVal - minVal + 1)) + minVal;
 
         try {
-            const url = `https://api.themoviedb.org/3/discover/movie?api_key=${TMDB_KEY}&with_genres=${genreId}&primary_release_year=${randomYear}&sort_by=vote_count.desc&page=1`;
-            const res = await fetch(url);
+            const res = await fetch(`https://api.themoviedb.org/3/discover/movie?api_key=${TMDB_KEY}&with_genres=${genreString}&primary_release_year=${randomYear}&sort_by=vote_count.desc`);
             const data = await res.json();
             
-            if (data.results && data.results.length > 0) {
-                const movies = data.results.sort(() => Math.random() - 0.5);
-                const movie = movies[0];
-                const movieYear = movie.release_date ? movie.release_date.split('-')[0] : randomYear;
-
+            if (!data.results || data.results.length === 0) {
+                alert("No movies found that match ALL selected genres in this year. Try selecting fewer genres or changing the year!");
+            } else {
+                const movie = data.results[Math.floor(Math.random() * Math.min(data.results.length, 10))];
                 document.getElementById('title').innerText = movie.title;
-                document.getElementById('year').innerText = "Released: " + movieYear;
                 document.getElementById('poster').src = movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : 'https://via.placeholder.com/500x750?text=No+Poster';
                 document.getElementById('movieResult').style.display = 'block';
 
-                const creditsRes = await fetch(`https://api.themoviedb.org/3/movie/${movie.id}/credits?api_key=${TMDB_KEY}`);
-                const creditsData = await creditsRes.json();
-                const cast = creditsData.cast.slice(0, 4).map(c => c.name).join(", ");
-                document.getElementById('actorList').innerText = cast || "Cast info unavailable";
+                const providerRes = await fetch(`https://api.themoviedb.org/3/movie/${movie.id}/watch/providers?api_key=${TMDB_KEY}`);
+                const pData = await providerRes.json();
+                const list = document.getElementById('streamingList');
+                list.innerHTML = '';
+                if(pData.results?.AU?.flatrate) {
+                    pData.results.AU.flatrate.forEach(p => {
+                        list.innerHTML += `<img src="https://image.tmdb.org/t/p/w92${p.logo_path}" style="width:40px; border-radius:5px;" title="${p.provider_name}">`;
+                    });
+                } else { list.innerHTML = "Not on major streamers (AU)"; }
 
-                let rating = "N/A";
-                let omdbRes = await fetch(`https://www.omdbapi.com/?t=${encodeURIComponent(movie.title)}&y=${movieYear}&apikey=${OMDB_KEY}`);
-                let omdbData = await omdbRes.json();
-
-                if (omdbData.Response === "False") {
-                    omdbRes = await fetch(`https://www.omdbapi.com/?t=${encodeURIComponent(movie.title)}&apikey=${OMDB_KEY}`);
-                    omdbData = await omdbRes.json();
-                }
-
-                if (omdbData.Response === "True") {
-                    const rt = omdbData.Ratings ? omdbData.Ratings.find(r => r.Source === "Rotten Tomatoes") : null;
-                    rating = rt ? rt.Value : (omdbData.imdbRating !== "N/A" ? omdbData.imdbRating + "/10 (IMDb)" : "N/A");
-                } 
-                
-                if (rating === "N/A" || rating === undefined) {
-                    rating = Math.round(movie.vote_average * 10) + "% (User Score)";
-                }
-                document.getElementById('scoreDisplay').innerText = rating;
-
-                const videoRes = await fetch(`https://api.themoviedb.org/3/movie/${movie.id}/videos?api_key=${TMDB_KEY}`);
-                const videoData = await videoRes.json();
-                const trailer = videoData.results.find(v => v.site === 'YouTube' && (v.type === 'Trailer' || v.type === 'Teaser'));
-                
-                const tBtn = document.getElementById('trailerLink');
-                if (trailer) {
-                    tBtn.href = `https://www.youtube.com/watch?v=${trailer.key}`;
-                    tBtn.style.display = 'flex';
-                } else {
-                    tBtn.style.display = 'none';
-                }
-            } else {
-                alert(`No movies found for year ${randomYear}. Try a different genre.`);
+                const vRes = await fetch(`https://api.themoviedb.org/3/movie/${movie.id}/videos?api_key=${TMDB_KEY}`);
+                const vData = await vRes.json();
+                const trailer = vData.results.find(v => v.type === 'Trailer');
+                document.getElementById('trailerLink').href = trailer ? `https://youtube.com/watch?v=${trailer.key}` : "#";
             }
-        } catch (error) {
-            console.error(error);
-            alert("Connection error. Please try again.");
-        }
-        btn.innerText = "Generate Movie";
-        btn.disabled = false;
+        } catch(e) { alert("Box Office Error!"); }
+        
+        btn.innerText = "GENERATE MOVIE"; btn.disabled = false;
     }
-</script>
 
+    function createPopcorn() {
+        const wheel = document.getElementById('wheelWrapper');
+        const rect = wheel.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+
+        for (let i = 0; i < 50; i++) {
+            const p = document.createElement('div');
+            p.className = 'popcorn'; p.innerText = '🍿';
+            p.style.left = centerX + 'px'; p.style.top = centerY + 'px';
+            document.body.appendChild(p);
+
+            const angle = Math.random() * Math.PI * 2;
+            const velocity = 6 + Math.random() * 12;
+            const vx = Math.cos(angle) * velocity;
+            const vy = Math.sin(angle) * velocity;
+            let posX = centerX, posY = centerY, opacity = 1;
+
+            const animate = () => {
+                posX += vx; posY += vy + 0.3; opacity -= 0.015;
+                p.style.left = posX + 'px'; p.style.top = posY + 'px'; p.style.opacity = opacity;
+                p.style.transform = `rotate(${posX}deg) scale(${opacity})`;
+                if (opacity > 0) requestAnimationFrame(animate); else p.remove();
+            };
+            requestAnimationFrame(animate);
+        }
+    }
+
+    let currentDeg = 0;
+    const colors = ["#800000", "#d4af37", "#000000", "#b8860b", "#4a0404"];
+    
+    function drawWheel() {
+        const canvas = document.getElementById('wheelCanvas');
+        const ctx = canvas.getContext('2d');
+        const items = document.getElementById('wheelInput').value.split('\n').filter(i => i.trim());
+        if(!items.length) { ctx.clearRect(0,0,500,500); return; }
+        const arc = (Math.PI * 2) / items.length;
+        ctx.clearRect(0,0,500,500);
+        items.forEach((item, i) => {
+            ctx.beginPath(); ctx.fillStyle = colors[i % colors.length];
+            ctx.moveTo(250,250); ctx.arc(250,250,240, i*arc, (i+1)*arc); ctx.fill();
+            ctx.save(); ctx.translate(250,250); ctx.rotate(i*arc + arc/2);
+            ctx.fillStyle="#fff"; ctx.font="bold 20px Georgia"; ctx.fillText(item.substring(0,15), 100, 10); ctx.restore();
+        });
+    }
+
+    function spinWheel() {
+        const btn = document.getElementById('spinBtn');
+        const items = document.getElementById('wheelInput').value.split('\n').filter(i => i.trim());
+        if(items.length < 2) return;
+        btn.disabled = true;
+        currentDeg += 1800 + Math.random() * 1800;
+        document.getElementById('wheelCanvas').style.transform = `rotate(-${currentDeg}deg)`;
+        setTimeout(() => {
+            const index = Math.floor(((currentDeg + 270) % 360) / (360 / items.length));
+            createPopcorn();
+            alert("🍿 THE WINNER IS: " + items[index]);
+            btn.disabled = false;
+        }, 4000);
+    }
+
+    window.onload = () => {
+        initGenres();
+        drawWheel();
+        autoExpand(document.getElementById('wheelInput'));
+    };
+</script>
 </body>
 </html>
